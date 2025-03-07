@@ -111,10 +111,15 @@ ipython_config.py
 .pdm-python
 .pdm-build/
 
-#pr.py
-#delete_txt.py
-#commits.py
-#create_issues.py
+
+commits.py
+issues.py
+pr.py
+delete_txt.py
+app.py
+create_commits.py
+create_issues.py
+create_pr.py
 
 #README.md
 
