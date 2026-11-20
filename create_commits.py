@@ -272,9 +272,14 @@ class CommitGeneratorApp(tk.Tk):
             # Push final
             self._show_section_title("Enviando al repositorio remoto")
             git.run_command(f'git pull --rebase {repo_url} {env_vars["BASE_BRANCH"]}', True)
-            git.run_command(f'git push {repo_url} {env_vars["BASE_BRANCH"]}', True)
+            pushed = git.run_command(f'git push {repo_url} {env_vars["BASE_BRANCH"]}', True)
 
-            self.output_insert(f"\n{EMOJI['exito']} {total_commits} commits generados y enviados a {env_vars['BASE_BRANCH']}.\n")
+            if pushed:
+                self.output_insert(f"\n{EMOJI['exito']} {total_commits} commits generados y enviados a {env_vars['BASE_BRANCH']}.\n")
+            else:
+                self.output_insert(
+                    f"\n{EMOJI['advertencia']} {total_commits} commits creados en local, pero GitHub rechazó el push. "
+                    "Revisa el error de arriba; los commits siguen en tu repo local.\n")
             
         except Exception as e:
             self.output_insert(f"{EMOJI['error']} Error general: {str(e)}\n")

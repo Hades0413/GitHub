@@ -206,6 +206,16 @@ _CMD_PREFIX = "Ejecutando: "
 _EMOJI_RE = re.compile(r"^\s*(" + "|".join(map(re.escape, _KINDS)) + r")️?\s*")
 
 
+_URL_CREDENTIALS_RE = re.compile(r"(https?://[^:/\s@]+:)[^@\s]+@")
+_GH_TOKEN_RE = re.compile(r"\b(gh[pousr]_|github_pat_)[A-Za-z0-9_]{10,}")
+
+
+def redact(text):
+    """Oculta tokens y credenciales antes de mostrarlos en pantalla."""
+    text = _URL_CREDENTIALS_RE.sub(r"\1***@", text)
+    return _GH_TOKEN_RE.sub(r"\1***", text)
+
+
 def make_console(parent, height=15, placeholder=None):
     """Crea la consola de salida con estilo de terminal y etiquetas de diff.
 
@@ -260,6 +270,7 @@ def log(console, text):
     (salida de git, respuestas de la API) va sangrado en gris.
     """
     _clear_placeholder(console)
+    text = redact(text)
     for line in text.split("\n"):
         if not line.strip():
             continue  # el espaciado lo dan las cabeceras de sección
