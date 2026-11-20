@@ -7,16 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from typing import Dict, Optional
 
-DARK_THEME = {
-    "background": "#121212",
-    "foreground": "#E0E0E0",
-    "field_bg": "#333333",
-    "text_bg": "#1E1E1E",
-    "button_bg": "#444444",
-    "button_fg": "#E0E0E0",
-    "success": "#66BB6A",
-    "error": "#FF5252"
-}
+import theme
 
 LINEA = "═" * 50
 EMOJI = {
@@ -71,9 +62,7 @@ class GitManager:
             return False
 
     def output_insert(self, text: str):
-        self.output.insert(tk.END, text)
-        self.output.see(tk.END)
-        self.output.update_idletasks()
+        theme.log(self.output, text)
 
     def check_and_commit_changes(self):
         status_result = subprocess.run(
@@ -96,102 +85,63 @@ class GitManager:
 class CommitGeneratorApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Generador de Commits Automatizado v1.0")
-        self.geometry("800x600")
+        self.title("Generar commits")
+        self.geometry("800x800")
+        self.minsize(640, 700)
         self.resizable(True, True)
-        self._configure_styles()
+        theme.apply_theme(self)
         self._create_widgets()
         self._load_env_if_exists()
 
-    def _configure_styles(self):
-        self.configure(bg=DARK_THEME["background"])
-        style = ttk.Style(self)
-        style.theme_create("dark", settings={
-            "TLabel": {
-                "configure": {
-                    "background": DARK_THEME["background"],
-                    "foreground": DARK_THEME["foreground"]
-                }
-            },
-            "TEntry": {
-                "configure": {
-                    "fieldbackground": DARK_THEME["field_bg"],
-                    "foreground": DARK_THEME["foreground"]
-                }
-            },
-            "TButton": {
-                "configure": {
-                    "background": DARK_THEME["button_bg"],
-                    "foreground": DARK_THEME["button_fg"],
-                    "padding": 5
-                }
-            },
-            "TLabelframe": {
-                "configure": {
-                    "background": DARK_THEME["background"],
-                    "foreground": DARK_THEME["foreground"]
-                }
-            },
-            "TLabelframe.Label": {
-                "configure": {
-                    "background": DARK_THEME["background"],
-                    "foreground": DARK_THEME["foreground"]
-                }
-            }
-        })
-        style.theme_use("dark")
-
     def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding=10)
+        sp = theme.SPACE
+        main_frame = ttk.Frame(self, padding=sp["lg"])
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        config_frame = ttk.LabelFrame(main_frame, text="Configuración del Repositorio", padding=10)
-        config_frame.pack(fill=tk.X, pady=5)
+        config_frame = ttk.LabelFrame(main_frame, text="Repositorio", padding=sp["md"])
+        config_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
         fields = [
-            ("Token de GitHub:", 'GITHUB_TOKEN'),
-            ("Dueño del Repo:", 'REPO_OWNER'),
-            ("Nombre del Repo:", 'REPO_NAME'),
-            ("Rama Base:", 'BASE_BRANCH'),
-            ("Email del Usuario:", 'USER_EMAIL')
+            ("Token de GitHub", 'GITHUB_TOKEN'),
+            ("Dueño del repo", 'REPO_OWNER'),
+            ("Nombre del repo", 'REPO_NAME'),
+            ("Rama base", 'BASE_BRANCH'),
+            ("Email del usuario", 'USER_EMAIL')
         ]
 
         self.entries = {}
         for text, key in fields:
             row = ttk.Frame(config_frame)
-            row.pack(fill=tk.X, pady=2)
-            ttk.Label(row, text=text, width=15).pack(side=tk.LEFT)
+            row.pack(fill=tk.X, pady=sp["xs"])
+            ttk.Label(row, text=text, width=theme.LABEL_WIDTH).pack(side=tk.LEFT)
             entry = ttk.Entry(row)
             entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
             self.entries[key] = entry
+        theme.mask_token(self.entries['GITHUB_TOKEN'])
 
-        params_frame = ttk.LabelFrame(main_frame, text="Parámetros de Commits", padding=10)
-        params_frame.pack(fill=tk.X, pady=5)
+        params_frame = ttk.LabelFrame(main_frame, text="Commits a generar", padding=sp["md"])
+        params_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
-        self.entries['MES_INICIO'] = self._create_spinbox(params_frame, "Mes Inicio:", 1, 12)
-        self.entries['MES_FIN'] = self._create_spinbox(params_frame, "Mes Fin:", 1, 12)
-        self.entries['COMMITS_MES'] = self._create_spinbox(params_frame, "Commits/Mes:", 1, 1000)
-        self.entries['ANO'] = self._create_spinbox(params_frame, "Año:", 2000, datetime.now().year + 1)
+        self.entries['MES_INICIO'] = self._create_spinbox(params_frame, "Mes inicio", 1, 12)
+        self.entries['MES_FIN'] = self._create_spinbox(params_frame, "Mes fin", 1, 12)
+        self.entries['COMMITS_MES'] = self._create_spinbox(params_frame, "Commits por mes", 1, 1000)
+        self.entries['ANO'] = self._create_spinbox(params_frame, "Año", 2000, datetime.now().year + 1)
 
         exec_frame = ttk.Frame(main_frame)
-        exec_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(exec_frame, text="Generar Commits", command=self._execute).pack(side=tk.LEFT, padx=5)
-        ttk.Button(exec_frame, text="Limpiar Salida", command=self._clear_output).pack(side=tk.LEFT, padx=5)
+        exec_frame.pack(fill=tk.X, pady=(0, sp["md"]))
+        ttk.Button(exec_frame, text="Generar commits", style="Accent.TButton",
+                   command=self._execute).pack(side=tk.LEFT, padx=(0, sp["sm"]))
+        ttk.Button(exec_frame, text="Limpiar consola", command=self._clear_output).pack(side=tk.LEFT)
 
-        self.output = scrolledtext.ScrolledText(
-            main_frame, 
-            wrap=tk.WORD, 
-            height=15,
-            bg=DARK_THEME["text_bg"],
-            fg=DARK_THEME["foreground"],
-            insertbackground=DARK_THEME["foreground"]
-        )
+        self.output = theme.make_console(
+            main_frame, height=15,
+            placeholder="Aquí verás cada commit cuando pulses Generar commits.")
         self.output.pack(fill=tk.BOTH, expand=True)
 
     def _create_spinbox(self, parent, label_text, from_, to):
         frame = ttk.Frame(parent)
-        frame.pack(fill=tk.X, pady=2)
-        ttk.Label(frame, text=label_text, width=12).pack(side=tk.LEFT)
+        frame.pack(fill=tk.X, pady=theme.SPACE["xs"])
+        ttk.Label(frame, text=label_text, width=theme.SPIN_LABEL_WIDTH).pack(side=tk.LEFT)
         spinbox = ttk.Spinbox(frame, from_=from_, to=to, width=8)
         spinbox.pack(side=tk.LEFT)
         return spinbox
@@ -213,18 +163,20 @@ class CommitGeneratorApp(tk.Tk):
             }
             
             if data['mes_inicio'] > data['mes_fin']:
-                messagebox.showerror("Error", "El mes de inicio no puede ser mayor al mes final")
+                messagebox.showerror("Revisa los meses",
+                                     "Mes inicio no puede ser mayor que Mes fin. Por ejemplo: de 3 a 6.")
                 return None
-                
+
             current_year = datetime.now().year
             if not (1990 <= data['ano'] <= current_year + 1):
-                messagebox.showerror("Error", f"Año debe estar entre 1990 y {current_year + 1}")
+                messagebox.showerror("Revisa el año", f"Año debe estar entre 1990 y {current_year + 1}.")
                 return None
-                
+
             return data
-            
+
         except ValueError:
-            messagebox.showerror("Error", "Todos los valores numéricos deben ser enteros válidos")
+            messagebox.showerror("Revisa los parámetros",
+                                 "Mes inicio, Mes fin, Commits por mes y Año deben ser números enteros.")
             return None
 
     def _create_env_file(self):
@@ -232,10 +184,11 @@ class CommitGeneratorApp(tk.Tk):
             with open('.env', 'w') as f:
                 for key in ['GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'BASE_BRANCH', 'USER_EMAIL']:
                     f.write(f"{key}={self.entries[key].get()}\n")
-            messagebox.showinfo("Éxito", "Archivo .env actualizado correctamente")
+            messagebox.showinfo("Datos guardados", "Los datos del repositorio se guardaron en .env.")
             return True
         except Exception as e:
-            messagebox.showerror("Error", f"Error creando .env: {str(e)}")
+            messagebox.showerror("No se pudo guardar .env",
+                                 f"{e}\n\nRevisa que tengas permiso de escritura en la carpeta del proyecto.")
             return False
 
     def _generate_commit_dates(self, mes: int, año: int, total_commits: int) -> list:
@@ -258,15 +211,13 @@ class CommitGeneratorApp(tk.Tk):
         )
 
     def _show_section_title(self, text: str):
-        self.output.insert(tk.END, f"\n{LINEA}\n{EMOJI['mes']} {text.center(48)} {EMOJI['mes']}\n{LINEA}\n")
+        theme.log_section(self.output, text)
 
     def _clear_output(self):
         self.output.delete(1.0, tk.END)
 
     def output_insert(self, text: str):
-        self.output.insert(tk.END, text)
-        self.output.see(tk.END)
-        self.output.update_idletasks()
+        theme.log(self.output, text)
 
     def _execute(self):
         self._clear_output()
@@ -281,26 +232,27 @@ class CommitGeneratorApp(tk.Tk):
         env_vars = {key: os.getenv(key) for key in ['GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'BASE_BRANCH', 'USER_EMAIL']}
         
         if None in env_vars.values():
-            messagebox.showerror("Error", "Faltan variables en el archivo .env")
+            messagebox.showerror("Faltan datos del repositorio",
+                                 "Completa token, dueño, nombre del repo, rama base y email.")
             return
 
         git = GitManager(env_vars, self.output)
-        
+
         try:
-            self._show_section_title("INICIANDO PROCESO")
+            self._show_section_title("Preparando git")
             git.run_command('git config --local commit.gpgsign false', False)
             git.run_command('git config pull.rebase false', False)
             git.run_command(f'git config --local user.name "{env_vars["REPO_OWNER"]}"', False)
             git.run_command(f'git config --local user.email "{env_vars["USER_EMAIL"]}"', False)
             
-            self._show_section_title("SINCRONIZANDO REPOSITORIO")
+            self._show_section_title("Sincronizando repositorio")
             repo_url = f'https://{env_vars["REPO_OWNER"]}:{env_vars["GITHUB_TOKEN"]}@github.com/{env_vars["REPO_OWNER"]}/{env_vars["REPO_NAME"]}.git'
             git.run_command(f'git pull --allow-unrelated-histories {repo_url} {env_vars["BASE_BRANCH"]}', True)
             
             git.check_and_commit_changes()
             
             total_commits = params['commits_mes'] * (params['mes_fin'] - params['mes_inicio'] + 1)
-            self._show_section_title(f"GENERANDO {total_commits} COMMITS")
+            self._show_section_title(f"Generando {total_commits} commits")
             
             for mes in range(params['mes_inicio'], params['mes_fin'] + 1):
                 commit_dates = self._generate_commit_dates(mes, params['ano'], params['commits_mes'])
@@ -318,11 +270,11 @@ class CommitGeneratorApp(tk.Tk):
                         self.output_insert(f"{EMOJI['commit']} Commit {i}/{len(commit_dates)} realizado en {date.strftime('%H:%M:%S %d/%m/%Y')}\n")
             
             # Push final
-            self._show_section_title("PUSH AL REPOSITORIO REMOTO")
+            self._show_section_title("Enviando al repositorio remoto")
             git.run_command(f'git pull --rebase {repo_url} {env_vars["BASE_BRANCH"]}', True)
             git.run_command(f'git push {repo_url} {env_vars["BASE_BRANCH"]}', True)
 
-            self.output_insert(f"\n{EMOJI['exito']} Commits generados y enviados con éxito!\n")
+            self.output_insert(f"\n{EMOJI['exito']} {total_commits} commits generados y enviados a {env_vars['BASE_BRANCH']}.\n")
             
         except Exception as e:
             self.output_insert(f"{EMOJI['error']} Error general: {str(e)}\n")

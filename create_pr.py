@@ -7,98 +7,73 @@ from tkinter import ttk, messagebox, scrolledtext
 from datetime import datetime
 from dotenv import load_dotenv
 
+import theme
+
 # Cargar variables de entorno si existen
 load_dotenv()
 
 class GitHubPRCreatorApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("GitHub PR Creator v1.0")
-        self.geometry("800x700")
+        self.title("Generar PRs")
+        self.geometry("800x880")
+        self.minsize(640, 720)
         self.resizable(True, True)
-        self._configure_styles()
+        theme.apply_theme(self)
         self._create_widgets()
         self._load_env_if_exists()
 
-    def _configure_styles(self):
-        self.configure(bg="#121212")
-        style = ttk.Style(self)
-        style.theme_create("dark", settings={
-            "TLabel": {
-                "configure": {
-                    "background": "#121212",
-                    "foreground": "#E0E0E0"
-                }
-            },
-            "TEntry": {
-                "configure": {
-                    "fieldbackground": "#333333",
-                    "foreground": "#E0E0E0"
-                }
-            },
-            "TButton": {
-                "configure": {
-                    "background": "#444444",
-                    "foreground": "#E0E0E0",
-                    "padding": 5
-                }
-            },
-        })
-        style.theme_use("dark")
-
     def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding=10)
+        sp = theme.SPACE
+        main_frame = ttk.Frame(self, padding=sp["lg"])
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        config_frame = ttk.LabelFrame(main_frame, text="Configuración de GitHub", padding=10)
-        config_frame.pack(fill=tk.X, pady=5)
+        config_frame = ttk.LabelFrame(main_frame, text="Repositorio", padding=sp["md"])
+        config_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
         fields = [
-            ("Token de GitHub:", 'GITHUB_TOKEN'),
-            ("Dueño del Repo:", 'REPO_OWNER'),
-            ("Nombre del Repo:", 'REPO_NAME'),
-            ("Base Branch:", 'BASE_BRANCH'),
-            ("Email del Usuario:", 'USER_EMAIL')
+            ("Token de GitHub", 'GITHUB_TOKEN'),
+            ("Dueño del repo", 'REPO_OWNER'),
+            ("Nombre del repo", 'REPO_NAME'),
+            ("Rama base", 'BASE_BRANCH'),
+            ("Email del usuario", 'USER_EMAIL')
         ]
 
         self.entries = {}
         for text, key in fields:
             row = ttk.Frame(config_frame)
-            row.pack(fill=tk.X, pady=2)
-            ttk.Label(row, text=text, width=15).pack(side=tk.LEFT)
+            row.pack(fill=tk.X, pady=sp["xs"])
+            ttk.Label(row, text=text, width=theme.LABEL_WIDTH).pack(side=tk.LEFT)
             entry = ttk.Entry(row)
             entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
             self.entries[key] = entry
+        theme.mask_token(self.entries['GITHUB_TOKEN'])
 
-        params_frame = ttk.LabelFrame(main_frame, text="Parámetros de PR", padding=10)
-        params_frame.pack(fill=tk.X, pady=5)
+        params_frame = ttk.LabelFrame(main_frame, text="PRs a generar", padding=sp["md"])
+        params_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
-        self.entries['PRS_POR_MES'] = self._create_spinbox(params_frame, "PRs por mes:", 1, 10)
-        self.entries['AÑO'] = self._create_spinbox(params_frame, "Año:", 2008, 2025)
-        self.entries['MES_INICIO'] = self._create_spinbox(params_frame, "Mes inicio:", 1, 12)
-        self.entries['MES_FIN'] = self._create_spinbox(params_frame, "Mes fin:", 1, 12)
-        self.entries['HORA_INICIO'] = self._create_spinbox(params_frame, "Hora inicio:", 0, 23)
-        self.entries['HORA_FIN'] = self._create_spinbox(params_frame, "Hora fin:", 0, 23)
+        self.entries['PRS_POR_MES'] = self._create_spinbox(params_frame, "PRs por mes", 1, 10)
+        self.entries['AÑO'] = self._create_spinbox(params_frame, "Año", 2008, 2025)
+        self.entries['MES_INICIO'] = self._create_spinbox(params_frame, "Mes inicio", 1, 12)
+        self.entries['MES_FIN'] = self._create_spinbox(params_frame, "Mes fin", 1, 12)
+        self.entries['HORA_INICIO'] = self._create_spinbox(params_frame, "Hora inicio", 0, 23)
+        self.entries['HORA_FIN'] = self._create_spinbox(params_frame, "Hora fin", 0, 23)
 
         exec_frame = ttk.Frame(main_frame)
-        exec_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(exec_frame, text="Generar PRs", command=self._execute).pack(side=tk.LEFT, padx=5)
-        ttk.Button(exec_frame, text="Limpiar Consola", command=self.clear_console).pack(side=tk.LEFT, padx=5)
+        exec_frame.pack(fill=tk.X, pady=(0, sp["md"]))
+        ttk.Button(exec_frame, text="Generar PRs", style="Accent.TButton",
+                   command=self._execute).pack(side=tk.LEFT, padx=(0, sp["sm"]))
+        ttk.Button(exec_frame, text="Limpiar consola", command=self.clear_console).pack(side=tk.LEFT)
 
-        self.output = scrolledtext.ScrolledText(
-            main_frame,
-            wrap=tk.WORD,
-            height=15,
-            bg="#1E1E1E",
-            fg="#E0E0E0",
-            insertbackground="#E0E0E0"
-        )
+        self.output = theme.make_console(
+            main_frame, height=12,
+            placeholder="Aquí verás cada PR, mes a mes, cuando pulses Generar PRs.")
         self.output.pack(fill=tk.BOTH, expand=True)
 
     def _create_spinbox(self, parent, label_text, from_, to):
         frame = ttk.Frame(parent)
-        frame.pack(fill=tk.X, pady=2)
-        ttk.Label(frame, text=label_text, width=12).pack(side=tk.LEFT)
+        frame.pack(fill=tk.X, pady=theme.SPACE["xs"])
+        ttk.Label(frame, text=label_text, width=theme.SPIN_LABEL_WIDTH).pack(side=tk.LEFT)
         spinbox = ttk.Spinbox(frame, from_=from_, to=to, width=8)
         spinbox.pack(side=tk.LEFT)
         return spinbox
@@ -122,13 +97,15 @@ class GitHubPRCreatorApp(tk.Tk):
             }
 
             if data['prs_por_mes'] < 1 or data['prs_por_mes'] > 10:
-                messagebox.showerror("Error", "El número de PRs por mes debe estar entre 1 y 10")
+                messagebox.showerror("Revisa PRs por mes", "PRs por mes debe estar entre 1 y 10.")
                 return None
 
             return data
 
         except ValueError:
-            messagebox.showerror("Error", "Por favor, ingrese valores numéricos válidos")
+            messagebox.showerror("Revisa los parámetros",
+                                 "PRs por mes, Año, Mes inicio, Mes fin, Hora inicio y Hora fin "
+                                 "deben ser números enteros.")
             return None
 
     def _execute(self):
@@ -146,24 +123,25 @@ class GitHubPRCreatorApp(tk.Tk):
         user_email = os.getenv('USER_EMAIL')
 
         if not all([token, repo_owner, repo_name, base_branch, user_email]):
-            messagebox.showerror("Error", "Faltan variables en el archivo .env")
+            messagebox.showerror("Falta el archivo .env",
+                                 "Esta ventana lee GITHUB_TOKEN, REPO_OWNER, REPO_NAME, BASE_BRANCH "
+                                 "y USER_EMAIL desde .env. Créalo a partir de .env.example y vuelve a intentarlo.")
             return
 
         # Aquí empieza el proceso de creación y fusión de PRs, similar al script original
         print("🏁 Iniciando generación y merge de PRs históricos")
         for mes in range(params['mes_inicio'], params['mes_fin'] + 1):
-            self.output_insert(f"\n📅 Procesando {mes:02d}/{params['año']}\n")
+            theme.log_section(self.output, f"Mes {mes:02d}/{params['año']}")
             for pr_num in range(1, params['prs_por_mes'] + 1):
                 self.output_insert(f"🔄 Procesando PR {pr_num}/{params['prs_por_mes']}\n")
                 self.crear_y_mergear_pr(mes, params['año'], pr_num)
 
-        self.output_insert("\n✅ Todos los PRs han sido mergeados correctamente\n")
-        self.output_insert("⚠️ Verifica en GitHub que los commits y merges muestren las fechas correctas\n")
+        theme.log_section(self.output, "Resumen")
+        self.output_insert("✅ Todos los PRs se crearon y se fusionaron.\n")
+        self.output_insert("⚠️ Abre el repo en GitHub y comprueba que commits y merges muestran las fechas elegidas.\n")
 
     def output_insert(self, text: str):
-        self.output.insert(tk.END, text)
-        self.output.see(tk.END)
-        self.output.update_idletasks()
+        theme.log(self.output, text)
 
     def clear_console(self):
         """Limpiar el área de texto de la consola"""
@@ -182,7 +160,7 @@ class GitHubPRCreatorApp(tk.Tk):
                 capture_output=not print_output
             )
         except subprocess.CalledProcessError as e:
-            self.output_insert(f"Error en comando: {command}")
+            self.output_insert(f"❌ Falló el comando: {command}")
             self.output_insert(f"Detalles: {e.stderr.decode().strip()}")
             exit()
 
@@ -210,7 +188,7 @@ class GitHubPRCreatorApp(tk.Tk):
             response.raise_for_status()
             return response.json()['number']
         except requests.exceptions.RequestException as e:
-            self.output_insert(f"Error creando PR: {str(e)}")
+            self.output_insert(f"❌ No se pudo crear el PR: {str(e)}")
             return None
 
     def configurar_entorno_fechas(self, fecha):

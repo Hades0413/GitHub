@@ -6,6 +6,8 @@ from tkinter import ttk, messagebox, scrolledtext
 from dotenv import load_dotenv
 from datetime import datetime
 
+import theme
+
 # Configuración visual
 LINEA = "═" * 60
 EMOJI = {
@@ -23,90 +25,63 @@ GITHUB_API_URL = 'https://api.github.com'
 class GitHubIssueCreatorApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("GitHub Issue Creator v1.0")
-        self.geometry("800x600")
+        self.title("Crear issues")
+        self.geometry("800x620")
+        self.minsize(640, 540)
         self.resizable(True, True)
-        self._configure_styles()
+        theme.apply_theme(self)
         self._create_widgets()
         self._load_env_if_exists()
 
-    def _configure_styles(self):
-        self.configure(bg="#121212")
-        style = ttk.Style(self)
-        style.theme_create("dark", settings={
-            "TLabel": {
-                "configure": {
-                    "background": "#121212",
-                    "foreground": "#E0E0E0"
-                }
-            },
-            "TEntry": {
-                "configure": {
-                    "fieldbackground": "#333333",
-                    "foreground": "#E0E0E0"
-                }
-            },
-            "TButton": {
-                "configure": {
-                    "background": "#444444",
-                    "foreground": "#E0E0E0",
-                    "padding": 5
-                }
-            },
-        })
-        style.theme_use("dark")
-
     def _create_widgets(self):
-        main_frame = ttk.Frame(self, padding=10)
+        sp = theme.SPACE
+        main_frame = ttk.Frame(self, padding=sp["lg"])
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        config_frame = ttk.LabelFrame(main_frame, text="Configuración de GitHub", padding=10)
-        config_frame.pack(fill=tk.X, pady=5)
+        config_frame = ttk.LabelFrame(main_frame, text="Repositorio", padding=sp["md"])
+        config_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
         fields = [
-            ("Token de GitHub:", 'GITHUB_TOKEN'),
-            ("Dueño del Repo:", 'REPO_OWNER'),
-            ("Nombre del Repo:", 'REPO_NAME')
+            ("Token de GitHub", 'GITHUB_TOKEN'),
+            ("Dueño del repo", 'REPO_OWNER'),
+            ("Nombre del repo", 'REPO_NAME')
         ]
 
         self.entries = {}
         for text, key in fields:
             row = ttk.Frame(config_frame)
-            row.pack(fill=tk.X, pady=2)
-            ttk.Label(row, text=text, width=15).pack(side=tk.LEFT)
+            row.pack(fill=tk.X, pady=sp["xs"])
+            ttk.Label(row, text=text, width=theme.LABEL_WIDTH).pack(side=tk.LEFT)
             entry = ttk.Entry(row)
             entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
             self.entries[key] = entry
+        theme.mask_token(self.entries['GITHUB_TOKEN'])
 
-        params_frame = ttk.LabelFrame(main_frame, text="Parámetros de Issues", padding=10)
-        params_frame.pack(fill=tk.X, pady=5)
+        params_frame = ttk.LabelFrame(main_frame, text="Issues a crear", padding=sp["md"])
+        params_frame.pack(fill=tk.X, pady=(0, sp["md"]))
 
-        self.entries['TOTAL_ISSUES'] = self._create_spinbox(params_frame, "Total de Issues:", 1, 100)
+        self.entries['TOTAL_ISSUES'] = self._create_spinbox(params_frame, "Total de issues", 1, 100)
 
         exec_frame = ttk.Frame(main_frame)
-        exec_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(exec_frame, text="Crear Issues", command=self._execute).pack(side=tk.LEFT, padx=5)
+        exec_frame.pack(fill=tk.X, pady=(0, sp["sm"]))
+        ttk.Button(exec_frame, text="Crear issues", style="Accent.TButton",
+                   command=self._execute).pack(side=tk.LEFT)
 
         # Botones para limpiar la consola y los campos
         control_frame = ttk.Frame(main_frame)
-        control_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(control_frame, text="Limpiar Consola", command=self.clear_console).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Limpiar Campos", command=self.clear_fields).pack(side=tk.LEFT, padx=5)
+        control_frame.pack(fill=tk.X, pady=(0, sp["md"]))
+        ttk.Button(control_frame, text="Limpiar consola", command=self.clear_console).pack(side=tk.LEFT, padx=(0, sp["sm"]))
+        ttk.Button(control_frame, text="Limpiar campos", command=self.clear_fields).pack(side=tk.LEFT)
 
-        self.output = scrolledtext.ScrolledText(
-            main_frame,
-            wrap=tk.WORD,
-            height=15,
-            bg="#1E1E1E",
-            fg="#E0E0E0",
-            insertbackground="#E0E0E0"
-        )
+        self.output = theme.make_console(
+            main_frame, height=15,
+            placeholder="Aquí verás cada issue y su enlace cuando pulses Crear issues.")
         self.output.pack(fill=tk.BOTH, expand=True)
 
     def _create_spinbox(self, parent, label_text, from_, to):
         frame = ttk.Frame(parent)
-        frame.pack(fill=tk.X, pady=2)
-        ttk.Label(frame, text=label_text, width=12).pack(side=tk.LEFT)
+        frame.pack(fill=tk.X, pady=theme.SPACE["xs"])
+        ttk.Label(frame, text=label_text, width=theme.SPIN_LABEL_WIDTH).pack(side=tk.LEFT)
         spinbox = ttk.Spinbox(frame, from_=from_, to=to, width=8)
         spinbox.pack(side=tk.LEFT)
         return spinbox
@@ -125,13 +100,13 @@ class GitHubIssueCreatorApp(tk.Tk):
             }
 
             if data['total_issues'] < 1:
-                messagebox.showerror("Error", "El número de issues debe ser mayor que 0")
+                messagebox.showerror("Revisa el total", "Total de issues debe ser 1 o más.")
                 return None
 
             return data
 
         except ValueError:
-            messagebox.showerror("Error", "El valor de Total de Issues debe ser un número entero válido")
+            messagebox.showerror("Revisa el total", "Total de issues debe ser un número entero, por ejemplo 5.")
             return None
 
     def _create_issue(self, title, body, issue_num, total):
@@ -156,7 +131,7 @@ class GitHubIssueCreatorApp(tk.Tk):
             if response.status_code == 201:
                 issue = response.json()
                 self.output_insert(f"{EMOJI['success']} {progress} Issue creado en {elapsed:.2f}s\n")
-                self.output_insert(f"{EMOJI['link']} URL: {issue['html_url']}")
+                self.output_insert(f"{issue['html_url']}\n")
                 return True
             else:
                 self.output_insert(f"{EMOJI['error']} {progress} Error {response.status_code}\n")
@@ -168,9 +143,7 @@ class GitHubIssueCreatorApp(tk.Tk):
             return False
 
     def output_insert(self, text: str):
-        self.output.insert(tk.END, text)
-        self.output.see(tk.END)
-        self.output.update_idletasks()
+        theme.log(self.output, text)
 
     def clear_console(self):
         """Limpiar la consola de salida."""
@@ -194,14 +167,16 @@ class GitHubIssueCreatorApp(tk.Tk):
         repo_name = os.getenv('REPO_NAME')
 
         if not github_token or not repo_owner or not repo_name:
-            messagebox.showerror("Error", "Faltan variables en el archivo .env")
+            messagebox.showerror("Falta el archivo .env",
+                                 "Esta ventana lee GITHUB_TOKEN, REPO_OWNER y REPO_NAME desde .env. "
+                                 "Créalo a partir de .env.example y vuelve a intentarlo.")
             return
 
         total_issues = params['total_issues']
         success_count = 0
         failed_count = 0
 
-        self.output_insert(f"\n{EMOJI['success']} INICIANDO CREACIÓN DE {total_issues} ISSUES\n")
+        theme.log_section(self.output, f"Creando {total_issues} issues")
 
         for i in range(1, total_issues + 1):
             title = f'Issue {i} - {datetime.now().strftime("%Y-%m-%d")}'
@@ -219,16 +194,12 @@ Este es un issue generado automáticamente el {datetime.now().strftime("%Y-%m-%d
             else:
                 failed_count += 1
 
-        self.output_insert(f"\n{EMOJI['success']} Issues exitosos: {success_count}\n")
-        self.output_insert(f"{EMOJI['error']} Issues fallidos: {failed_count}\n")
-        self.output_insert(f"{EMOJI['issue']} Total procesados: {success_count + failed_count}\n")
-
-        if failed_count == 0:
-            self.output_insert("\n¡TODOS LOS ISSUES SE CREARON EXITOSAMENTE!\n")
-        else:
-            self.output_insert(f"\n{EMOJI['warning']} ALGUNOS ISSUES TUVIERON PROBLEMAS\n")
-
-        self.output_insert(f"{EMOJI['success']} PROCESO COMPLETADO\n")
+        theme.log_section(self.output, "Resumen")
+        self.output_insert(f"{EMOJI['success']} Creados: {success_count}\n")
+        if failed_count:
+            self.output_insert(f"{EMOJI['error']} Fallidos: {failed_count}\n")
+            self.output_insert(f"{EMOJI['warning']} Revisa los errores de arriba: suele ser el token "
+                               "sin permiso de issues o un repo mal escrito.\n")
 
 if __name__ == "__main__":
     app = GitHubIssueCreatorApp()

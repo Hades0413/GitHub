@@ -4,65 +4,22 @@ import subprocess
 import sys
 from PIL import Image, ImageTk
 import webbrowser
-from tkinter.font import Font
 import os
 
-class ModernButton(ttk.Button):
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
-        self.style = ttk.Style()
-        self.style.configure('Modern.TButton', 
-                            font=('Segoe UI', 14, 'bold'),
-                            borderwidth=0,
-                            relief='flat',
-                            padding=12,
-                            foreground='#ffffff',
-                            background='#3498db',
-                            bordercolor='#2980b9',
-                            focuscolor='#2ecc71',
-                            anchor='center',
-                            width=20,
-                            borderround=10)
-        self.style.map('Modern.TButton',
-                      foreground=[('active', '#ffffff'), ('disabled', '#bdc3c7')],
-                      background=[('active', '#2980b9'), ('pressed', '#2c3e50')])
-        self.configure(style='Modern.TButton')
+import theme
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("RepoSetupToolDesktop 1.0")
-        self.geometry("600x400")
+        self.geometry("820x520")
         self.minsize(800, 500)
-        self.configure(bg='#1a1a2e')
-        self.style = ttk.Style(self)
-        self.style.theme_use('clam')
-        
-        # Configuración de fuentes
-        self.title_font = Font(family='Roboto', size=24, weight='bold')
-        self.button_font = Font(family='Segoe UI', size=12)
-        
+        theme.apply_theme(self)
+
         self.load_resources()
-        self.setup_styles()
         self.setup_ui()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.setup_bindings()
-
-    def setup_styles(self):
-        self.style.configure('TFrame', background='#1a1a2e')
-        self.style.configure('Header.TLabel', 
-                           font=self.title_font,
-                           background='#16213e',
-                           foreground='#e94560')
-        self.style.configure('Status.TLabel',
-                           font=('Arial', 10),
-                           background='#1a1a2e',
-                           foreground='#8d8d99')
-        self.style.configure('Menu.TButton',
-                            font=self.button_font,
-                            background='#16213e',
-                            foreground='#ffffff',
-                            padding=8)
 
     def load_resources(self):
         try:
@@ -77,59 +34,58 @@ class App(tk.Tk):
 
     def setup_ui(self):
         # Header Section
+        c = theme.COLORS
         header_frame = ttk.Frame(self, style='TFrame')
         header_frame.pack(fill='x', padx=20, pady=20)
-        
-        logo_label = ttk.Label(header_frame, image=self.logo_image)
+
+        # Logo con marco de 1 px para que su fondo claro no choque con el tema
+        logo_label = tk.Label(header_frame, image=self.logo_image, bd=0,
+                              bg=c["bg"], highlightthickness=1,
+                              highlightbackground=c["border"])
         logo_label.pack(side='left', padx=15)
-        
+
         title_frame = ttk.Frame(header_frame, style='TFrame')
         title_frame.pack(side='left', padx=20)
-        
-        ttk.Label(title_frame, text="RepoSetupToolDesktop", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(title_frame, text="Gestión profesional de repositorios", 
-                style='Status.TLabel').pack(anchor='w')
+
+        ttk.Label(title_frame, text="RepoSetupToolDesktop", style='Title.TLabel').pack(anchor='w')
+        ttk.Label(title_frame, text="Commits, issues y PRs con las fechas que elijas",
+                  style='Muted.TLabel').pack(anchor='w', pady=(theme.SPACE["xs"], 0))
 
         # Main Content
         main_frame = ttk.Frame(self, style='TFrame')
         main_frame.pack(expand=True, fill='both', padx=40, pady=20)
-        
-        # Action Cards
+
+        # Acciones: mismo estilo para las tres, cada una dice qué hace
         actions = [
-            ('Generar Commit', '#2ecc71', self.open_commit_generator),
-            ('Generar Issue', '#e74c3c', self.open_issue_generator),
-            ('Generar PR', '#3498db', self.open_pr_generator)
+            ('Generar commits', 'Commits fechados por mes y año', self.open_commit_generator),
+            ('Generar issues', 'Varios issues de una sola vez', self.open_issue_generator),
+            ('Generar PRs', 'Rama, PR y merge por cada mes', self.open_pr_generator)
         ]
-        
-        for idx, (text, color, command) in enumerate(actions):
+
+        for idx, (text, hint, command) in enumerate(actions):
             card = ttk.Frame(main_frame, style='TFrame')
             card.grid(row=0, column=idx, padx=15, pady=10, sticky='nsew')
-            
-            btn = ModernButton(card, 
-                             text=text, 
-                             command=command)
+
+            btn = ttk.Button(card, text=text, style='Action.TButton', command=command)
             btn.pack(expand=True, fill='both')
-            btn.style.configure('Modern.TButton', background=color)
-            
-            ttk.Label(card, 
-                     text=f"Acción {idx+1}",
-                     style='Status.TLabel').pack(pady=5)
-        
-        main_frame.columnconfigure([0,1,2], weight=1)
-        
+
+            ttk.Label(card, text=hint, style='Muted.TLabel').pack(pady=theme.SPACE["sm"])
+
+        main_frame.columnconfigure([0,1,2], weight=1, uniform="acciones")
+
         # Status Bar
         self.status_bar = ttk.Frame(self, style='TFrame')
         self.status_bar.pack(fill='x', side='bottom', pady=10)
-        
-        self.status_label = ttk.Label(self.status_bar, 
+
+        self.status_label = ttk.Label(self.status_bar,
                                     text="Estado: Listo",
-                                    style='Status.TLabel')
+                                    style='Muted.TLabel')
         self.status_label.pack(side='left', padx=20)
-        
-        ttk.Button(self.status_bar, 
+
+        ttk.Button(self.status_bar,
                  image=self.github_icon,
                  command=self.open_docs,
-                 style='Menu.TButton').pack(side='right', padx=10)
+                 style='Icon.TButton').pack(side='right', padx=10)
 
         # Setup Menu
         self.setup_menu()
@@ -138,14 +94,14 @@ class App(tk.Tk):
         menu_bar = tk.Menu(self)
         
         # Archivo Menu
-        file_menu = tk.Menu(menu_bar, tearoff=0, bg='#16213e', fg='white')
+        file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Nuevo Proyecto")
         file_menu.add_command(label="Abrir")
         file_menu.add_separator()
         file_menu.add_command(label="Salir", command=self.on_close)
         
         # Ayuda Menu
-        help_menu = tk.Menu(menu_bar, tearoff=0, bg='#16213e', fg='white')
+        help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="Documentación", command=self.open_docs)
         help_menu.add_command(label="Actualizaciones")
         help_menu.add_command(label="Acerca de", command=self.show_about)
@@ -168,14 +124,21 @@ class App(tk.Tk):
             stdout, stderr = process.communicate()
             
             if process.returncode == 0:
-                self.update_status(f"Éxito: {script_name}")
-                messagebox.showinfo("Éxito", f"{script_name} ejecutado correctamente")
+                self.update_status(f"{script_name} cerrado sin errores")
             else:
                 raise subprocess.CalledProcessError(process.returncode, script_name, stderr)
-                
+
+        except subprocess.CalledProcessError as e:
+            detalle = (e.stderr or b"").decode(errors="replace").strip().splitlines()
+            ultima = detalle[-1] if detalle else f"código de salida {e.returncode}"
+            messagebox.showerror(f"{script_name} terminó con un error",
+                                 f"{ultima}\n\nRevisa la consola de esa ventana o ejecútalo con "
+                                 f"python {script_name} para ver el detalle.")
+            self.update_status(f"Error en {script_name}")
         except Exception as e:
-            messagebox.showerror("Error", f"Error ejecutando {script_name}:\n{str(e)}")
-            self.update_status(f"Error: {script_name}")
+            messagebox.showerror(f"No se pudo abrir {script_name}",
+                                 f"{e}\n\nComprueba que el archivo está en la carpeta del proyecto.")
+            self.update_status(f"Error en {script_name}")
 
     def update_status(self, message):
         self.status_label.config(text=f"Estado: {message}")
