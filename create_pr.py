@@ -115,7 +115,12 @@ class GitHubPRCreatorApp(tk.Tk):
         if not params:
             return
 
-        load_dotenv()
+        # Lo escrito en el formulario manda; .env solo rellena lo que esté vacío.
+        load_dotenv(override=False)
+        for key in ('GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'BASE_BRANCH', 'USER_EMAIL'):
+            value = self.entries[key].get().strip()
+            if value:
+                os.environ[key] = value
         token = os.getenv('GITHUB_TOKEN')
         repo_owner = os.getenv('REPO_OWNER')
         repo_name = os.getenv('REPO_NAME')
@@ -123,9 +128,8 @@ class GitHubPRCreatorApp(tk.Tk):
         user_email = os.getenv('USER_EMAIL')
 
         if not all([token, repo_owner, repo_name, base_branch, user_email]):
-            messagebox.showerror("Falta el archivo .env",
-                                 "Esta ventana lee GITHUB_TOKEN, REPO_OWNER, REPO_NAME, BASE_BRANCH "
-                                 "y USER_EMAIL desde .env. Créalo a partir de .env.example y vuelve a intentarlo.")
+            messagebox.showerror("Faltan datos del repositorio",
+                                 "Completa token, dueño, nombre del repo, rama base y email en el formulario (o en .env).")
             return
 
         # Aquí empieza el proceso de creación y fusión de PRs, similar al script original

@@ -161,15 +161,19 @@ class GitHubIssueCreatorApp(tk.Tk):
         if not params:
             return
 
-        load_dotenv()
+        # Lo escrito en el formulario manda; .env solo rellena lo que esté vacío.
+        load_dotenv(override=False)
+        for key in ('GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME'):
+            value = self.entries[key].get().strip()
+            if value:
+                os.environ[key] = value
         github_token = os.getenv('GITHUB_TOKEN')
         repo_owner = os.getenv('REPO_OWNER')
         repo_name = os.getenv('REPO_NAME')
 
         if not github_token or not repo_owner or not repo_name:
-            messagebox.showerror("Falta el archivo .env",
-                                 "Esta ventana lee GITHUB_TOKEN, REPO_OWNER y REPO_NAME desde .env. "
-                                 "Créalo a partir de .env.example y vuelve a intentarlo.")
+            messagebox.showerror("Faltan datos del repositorio",
+                                 "Completa token, dueño y nombre del repo en el formulario (o en .env).")
             return
 
         total_issues = params['total_issues']

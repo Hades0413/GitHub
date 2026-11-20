@@ -228,10 +228,14 @@ class CommitGeneratorApp(tk.Tk):
         if not params:
             return
             
-        load_dotenv()
-        env_vars = {key: os.getenv(key) for key in ['GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'BASE_BRANCH', 'USER_EMAIL']}
-        
-        if None in env_vars.values():
+        # Lo escrito en el formulario manda. (load_dotenv() no sobrescribe
+        # valores ya cargados, así que un token cambiado en el formulario
+        # se ignoraba y se seguía usando el anterior.)
+        env_vars = {key: self.entries[key].get().strip()
+                    for key in ['GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'BASE_BRANCH', 'USER_EMAIL']}
+        os.environ.update(env_vars)
+
+        if not all(env_vars.values()):
             messagebox.showerror("Faltan datos del repositorio",
                                  "Completa token, dueño, nombre del repo, rama base y email.")
             return
