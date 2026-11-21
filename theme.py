@@ -122,7 +122,14 @@ def apply_theme(root):
     style.configure("TEntry", **field)
     style.map("TEntry", **focus_map)
     style.configure("TSpinbox", arrowcolor=c["muted"], arrowsize=12, **field)
-    style.map("TSpinbox", arrowcolor=[("active", c["accent"])], **focus_map)
+    style.map(
+        "TSpinbox", arrowcolor=[("active", c["accent"])],
+        fieldbackground=[("readonly", c["surface"])],
+        foreground=[("readonly", c["text"])],
+        selectbackground=[("readonly", c["surface"])],
+        selectforeground=[("readonly", c["text"])],
+        **focus_map,
+    )
 
     # Botón secundario (neutro)
     style.configure(
@@ -165,6 +172,20 @@ def apply_theme(root):
         lightcolor=[("pressed", c["border"]), ("active", c["surface_hover"])],
         darkcolor=[("pressed", c["border"]), ("active", c["surface_hover"])],
         bordercolor=[("focus", c["accent"]), ("active", c["accent"])],
+    )
+
+    # Atajos pequeños (p. ej. "Año completo"): texto suave, borde fino
+    style.configure(
+        "Chip.TButton", font=f["small"], padding=(10, 3),
+        foreground=c["muted"], background=c["bg"], bordercolor=c["border"],
+        lightcolor=c["bg"], darkcolor=c["bg"], relief="solid", borderwidth=1,
+    )
+    style.map(
+        "Chip.TButton",
+        foreground=[("active", c["text"])],
+        background=[("pressed", c["border"]), ("active", c["surface"])],
+        lightcolor=[("active", c["surface"])], darkcolor=[("active", c["surface"])],
+        bordercolor=[("focus", c["accent"]), ("active", c["border_strong"])],
     )
 
     # Barra de scroll
